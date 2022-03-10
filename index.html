@@ -92,10 +92,35 @@
         </form>
       </div>
       <hr />
+      <div
+        class="btn-group"
+        id="sorting_options"
+        role="group"
+        aria-label="Basic example"
+      >
+        <button
+          type="button"
+          id="sort_new"
+          class="btn btn-primary"
+          onclick="sortVideoRequests('new')"
+        >
+          New
+        </button>
+        <button
+          type="button"
+          id="sort_top_voted"
+          class="btn btn-outline-primary"
+          onclick="sortVideoRequests('top_voted')"
+        >
+          Top Voted
+        </button>
+        <!-- <button type="button" class="btn btn-primary">Right</button> -->
+      </div>
       <h1 class="mb-4">List of requested videos</h1>
       <div id="listOfRequests"></div>
     </div>
     <script>
+      let videoRequests = [];
       function manipulateApiData(url, method, data) {
         return fetch(url, {
           method,
@@ -123,14 +148,10 @@
         });
       }
       function getVideoRequests() {
-        const videoReqList = document.getElementById("listOfRequests");
         manipulateApiData("http://localhost:7777/video-request", "get").then(
           (res) => {
-            res.forEach((req) => {
-              let videoReq = document.createElement("div");
-              videoReq.innerHTML = formatVideoReq(req);
-              videoReqList.append(videoReq);
-            });
+            videoRequests = res;
+            showVideoRequest(res);
           }
         );
       }
@@ -176,6 +197,35 @@
       }
       // DOMContentLoaded => fired when elements is loaded not images or styles
       // window.onload() =>fired when everything is loaded incuded images and styles
+      function sortVideoRequests(type) {
+        let otherType = type === "new" ? "top_voted" : "new";
+        let typeButton = document.getElementById(`sort_${type}`);
+        let otherTypedButton = document.getElementById(`sort_${otherType}`);
+        typeButton.classList.remove("btn-outline-primary");
+        typeButton.classList.add("btn-primary");
+        otherTypedButton.classList.add("btn-outline-primary");
+        otherTypedButton.classList.remove("btn-primary");
+        let sortedArray = [];
+        if (type == "new") {
+          sortedArray = videoRequests.sort(
+            (a, b) => a.submit_date < b.submit_date
+          );
+        } else {
+          sortedArray = videoRequests.sort(
+            (a, b) => formatVoteScore(a.votes) < formatVoteScore(b.votes)
+          );
+        }
+        showVideoRequest(sortedArray);
+      }
+      function showVideoRequest(videoRequests) {
+        const videoReqList = document.getElementById("listOfRequests");
+        videoReqList.innerHTML = "";
+        videoRequests.forEach((req) => {
+          let videoReq = document.createElement("div");
+          videoReq.innerHTML = formatVideoReq(req);
+          videoReqList.append(videoReq);
+        });
+      }
       document.addEventListener("DOMContentLoaded", function () {
         const videoReqList = document.getElementById("listOfRequests");
         const formVidReq = document.getElementById("formVideoRequest");
@@ -199,7 +249,8 @@
           ).then((res) => {
             let videoReq = document.createElement("div");
             videoReq.innerHTML = formatVideoReq(res);
-            videoReqList.prepend(videoReq);
+            videoReqList.append(videoReq);
+            videoRequests.push(res);
           });
         });
       });
