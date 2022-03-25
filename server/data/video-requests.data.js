@@ -10,8 +10,8 @@ module.exports = {
     return VideoRequest.find({}).sort({ submit_date: "-1" }).limit(top);
   },
 
-  searchRequests: (topic) => {
-    return VideoRequest.find({ topic_title: topic })
+  searchRequests: (topic, top) => {
+    return VideoRequest.find({ topic_title: { $regex: topic, $options: "i" } })
       .sort({ addedAt: "-1" })
       .limit(top);
   },
