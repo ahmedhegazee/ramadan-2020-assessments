@@ -92,35 +92,46 @@
         </form>
       </div>
       <hr />
-      <div
-        class="btn-group"
-        id="sorting_options"
-        role="group"
-        aria-label="Basic example"
-      >
-        <button
-          type="button"
-          id="sort_new"
-          class="btn btn-primary"
-          onclick="sortVideoRequests('new')"
+      <div class="d-flex justify-content-between mb-4">
+        <div
+          class="btn-group"
+          id="sorting_options"
+          role="group"
+          aria-label="Basic example"
         >
-          New
-        </button>
-        <button
-          type="button"
-          id="sort_top_voted"
-          class="btn btn-outline-primary"
-          onclick="sortVideoRequests('top_voted')"
-        >
-          Top Voted
-        </button>
-        <!-- <button type="button" class="btn btn-primary">Right</button> -->
+          <button
+            type="button"
+            id="sort_new"
+            class="btn btn-primary"
+            onclick="sortVideoRequests('new')"
+          >
+            New
+          </button>
+          <button
+            type="button"
+            id="sort_top_voted"
+            class="btn btn-outline-primary"
+            onclick="sortVideoRequests('top_voted')"
+          >
+            Top Voted
+          </button>
+        </div>
+        <div class="d-inline">
+          <input
+            type="search"
+            class="form-control"
+            id="searchInput"
+            placeholder="Search keyword"
+          />
+        </div>
       </div>
       <h1 class="mb-4">List of requested videos</h1>
       <div id="listOfRequests"></div>
     </div>
     <script>
       let videoRequests = [];
+      let sortType = "new";
+      let searchQuery = "";
       function manipulateApiData(url, method, data) {
         return fetch(url, {
           method,
@@ -148,12 +159,13 @@
         });
       }
       function getVideoRequests() {
-        manipulateApiData("http://localhost:7777/video-request", "get").then(
-          (res) => {
-            videoRequests = res;
-            showVideoRequest(res);
-          }
-        );
+        manipulateApiData(
+          `http://localhost:7777/video-request?sortType=${sortType}&searchQuery=${searchQuery}`,
+          "get"
+        ).then((res) => {
+          videoRequests = res;
+          showVideoRequest(res);
+        });
       }
       function formatVideoReq(req) {
         return `<div class="card mb-3">
@@ -199,23 +211,26 @@
       // window.onload() =>fired when everything is loaded incuded images and styles
       function sortVideoRequests(type) {
         let otherType = type === "new" ? "top_voted" : "new";
+        //front end way
         let typeButton = document.getElementById(`sort_${type}`);
         let otherTypedButton = document.getElementById(`sort_${otherType}`);
         typeButton.classList.remove("btn-outline-primary");
         typeButton.classList.add("btn-primary");
         otherTypedButton.classList.add("btn-outline-primary");
         otherTypedButton.classList.remove("btn-primary");
-        let sortedArray = [];
-        if (type == "new") {
-          sortedArray = videoRequests.sort(
-            (a, b) => a.submit_date < b.submit_date
-          );
-        } else {
-          sortedArray = videoRequests.sort(
-            (a, b) => formatVoteScore(a.votes) < formatVoteScore(b.votes)
-          );
-        }
-        showVideoRequest(sortedArray);
+        // let sortedArray = [];
+        // if (type == "new") {
+        //   sortedArray = videoRequests.sort(
+        //     (a, b) => a.submit_date < b.submit_date
+        //   );
+        // } else {
+        //   sortedArray = videoRequests.sort(
+        //     (a, b) => formatVoteScore(a.votes) < formatVoteScore(b.votes)
+        //   );
+        // }
+        // showVideoRequest(sortedArray);
+        sortType = type;
+        getVideoRequests();
       }
       function showVideoRequest(videoRequests) {
         const videoReqList = document.getElementById("listOfRequests");
@@ -229,7 +244,19 @@
       document.addEventListener("DOMContentLoaded", function () {
         const videoReqList = document.getElementById("listOfRequests");
         const formVidReq = document.getElementById("formVideoRequest");
+        const searchInput = document.getElementById("searchInput");
         getVideoRequests();
+        // searchInput.addEventListener("input", (event) => {
+        //   searchQuery = searchInput.value;
+        //   getVideoRequests();
+        // });
+        searchInput.addEventListener(
+          "input",
+          debounce((event) => {
+            searchQuery = searchInput.value;
+            getVideoRequests();
+          }, 500)
+        );
         formVidReq.addEventListener("submit", (event) => {
           event.preventDefault();
           const elements = document.querySelectorAll(
@@ -249,11 +276,19 @@
           ).then((res) => {
             let videoReq = document.createElement("div");
             videoReq.innerHTML = formatVideoReq(res);
-            videoReqList.append(videoReq);
+            videoReqList.prepend(videoReq);
             videoRequests.push(res);
           });
         });
       });
+      //to delay request after specific time to decrease amount of requests to server
+      function debounce(fn, time) {
+        let timer;
+        return function (...args) {
+          clearTimeout(timer);
+          timer = setTimeout(() => fn.apply(this, args), time);
+        };
+      }
     </script>
   </body>
 </html>
